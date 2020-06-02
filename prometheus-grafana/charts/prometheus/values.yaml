@@ -1,6 +1,5 @@
-#only for standalone deployment
-federationUser:  #insert_federation_user
-federationPassword:  #insert_federation_password
+federationUser: #required for standalone deployment
+federationPassword: #required for standalone deployment
 
 prometheus:
   image:
@@ -24,12 +23,11 @@ alertmanager:
     pullPolicy: IfNotPresent
   # pvc size
   storage: 1Gi
-  #only for standalone deployment
-  mailto:  #insert_mail
 
-#only for standalone deployment
+  mailto: #required for standalone deployment
+
 global:
-  namespace: 
+  namespace: #required for standalone deployment
   app: monitoring
 
 

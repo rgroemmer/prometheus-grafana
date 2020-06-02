@@ -13,5 +13,5 @@ resources:
 
 
 global:
-  namespace:  #only for standalone deployment
+  namespace:  #required for standalone deployment
   app: monitoring
