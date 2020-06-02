@@ -1,12 +1,15 @@
+#only for standalone deployment
+federationUser:  #insert_federation_user
+federationPassword:  #insert_federation_password
+
 prometheus:
   image:
     repository: docker.repo.schwarz/prom/prometheus
     tag: latest
     pullPolicy: IfNotPresent
-  
   # pvc size
   storage: 1Gi
-
+  # quota
   requests:
     memory: "250Mi"
     cpu: "100m"
@@ -14,25 +17,19 @@ prometheus:
     memory: "500Mi"
     cpu: "200m"
 
-  #only for standalone deployment
-  federationUser: # insert_federation_user
-  federationPassword: # insert_federation_password
-
 alertmanager:
   image:
     repository: docker.repo.schwarz/prom/alertmanager
     tag: latest
     pullPolicy: IfNotPresent
-
   # pvc size
   storage: 1Gi
-
   #only for standalone deployment
-  mailto: #insert_mail
+  mailto:  #insert_mail
 
 #only for standalone deployment
 global:
-  namespace:
+  namespace: 
   app: monitoring
 
 

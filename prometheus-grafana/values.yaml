@@ -1,13 +1,12 @@
 global:
-  namespace: #insert_namespace
-  # app label
+  namespace:  #insert_namespace
   app: monitoring
 
 prometheus:
   # federation auth
-  federationUser: #insert_federation_user
-  federationPassword: #insert_federation_password
+  federationUser:  #insert_federation_user
+  federationPassword:  #insert_federation_password
 
   # alertmanager
   alertmanager:
-    mailto: #insert_mail
+    mailto:  #insert_mail
