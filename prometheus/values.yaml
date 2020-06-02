@@ -1,0 +1,28 @@
+prometheus:
+  image:
+    repository: docker.repo.schwarz/prom/prometheus
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  # pvc size
+  storage: 1Gi
+
+  requests:
+    memory: "250Mi"
+    cpu: "100m"
+  limits:
+    memory: "500Mi"
+    cpu: "200m"
+
+alertmanager:
+  image:
+    repository: docker.repo.schwarz/prom/alertmanager
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  # pvc size
+  storage: 1Gi
+
+
+
+

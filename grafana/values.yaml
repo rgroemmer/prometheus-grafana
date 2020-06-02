@@ -1,0 +1,12 @@
+image:
+  repository: docker.repo.schwarz/grafana/grafana
+  tag: latest
+  pullPolicy: IfNotPresent
+
+pvc:
+  storage: 500Mi
+
+# resource limits
+resources:
+  memory: 500Mi
+  cpu:  1

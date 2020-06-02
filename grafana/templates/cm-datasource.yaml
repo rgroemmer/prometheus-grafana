@@ -1,0 +1,22 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "grafana.name" . }}-datasource
+  labels:
+  {{- include "grafana.labels" . | nindent 4 }}
+data:
+  datasource.yaml: |
+    {
+      "apiVersion": 1,
+      "datasources": [
+          {
+              "access":"proxy",
+              "editable": true,
+              "name": "prometheus",
+              "orgId": 1,
+              "type": "prometheus",
+              "url": "http://prometheus.{{ required "namespace is required!" .Values.global.namespace }}.svc.cluster.local:9090",
+              "version": 1
+          }
+      ]
+    }

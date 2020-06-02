@@ -1,0 +1,144 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ include "prometheus.name" . }}
+  labels:
+  {{ include "prometheus.labels" . | nindent 4}}
+data:
+  prometheus.yaml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    rule_files:
+      - /etc/prometheus/prometheus.rules
+    alerting:
+      alertmanagers:
+        - scheme: http
+          static_configs:
+            - targets:
+                - "alertmanager.{{ required "namespace is required!" .Values.global.namespace }}.svc:9093"
+
+    scrape_configs:
+      - job_name: "prometheus"
+        static_configs:
+          - targets: ["localhost:9090"]
+
+      - job_name: "kubernetes-services"
+        kubernetes_sd_configs:
+          - role: service
+            namespaces:
+              names:
+                - "{{ .Values.global.namespace }}"
+        tls_config:
+          insecure_skip_verify: true
+        relabel_configs:
+          # configure service annotations
+          - source_labels:
+              [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+            # only scrape services with 'prometheus_io_scrape' annotation
+          - source_labels:
+              [__meta_kubernetes_service_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+            # if prometheus.io/path is set, its value woud be put in __metrics_path__
+          - source_labels:
+              [
+                __address__,
+                __meta_kubernetes_service_annotation_prometheus_io_port,
+              ]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+            # set https or
+          - source_labels:
+              [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+            action: replace
+            target_label: __scheme__
+            regex: (https?)
+            # if prometheus.io/port is set, replace its value in __address__
+          # configure prometheus labels
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+            # change all labels to (.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+            # set value of label kubernetes_namespace to __meta_kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: service_name
+
+      - job_name: "kubernetes-pods"
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - "{{ .Values.global.namespace }}"
+        relabel_configs:
+          # configure pod annotations
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels:
+              [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          # configure prometheus labels
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: service_name
+
+      - job_name: "federate"
+        scrape_interval: 30s
+
+        honor_labels: true
+        metrics_path: "/federate"
+        scheme: https
+
+        params:
+          "match[]":
+            - '{namespace="{{ .Values.global.namespace }}"}'
+            - '{__name__=~"job:.*"}'
+        basic_auth:
+          username: {{ required "federation user  is required!" .Values.federationUser }}
+          password: {{ required "federation pw  is required!" .Values.federationPassword }}
+        tls_config:
+          insecure_skip_verify: true
+        static_configs:
+          - targets:
+              - "prometheus-k8s.openshift-monitoring.svc.cluster.local:9091"
+        metric_relabel_configs:
+          - separator: ;
+            regex: prometheus_replica
+            replacement: $1
+            action: labeldrop
+      - job_name: federate-pvc
+        honor_labels: true
+        honor_timestamps: true
+        params:
+          match[]:
+          - '{namespace="{{ .Values.global.namespace }}"}'
+          - '{__name__=~"job:.*"}'
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        metrics_path: /federate
+        scheme: http
+        static_configs:
+        - targets:
+          - prometheus.sit-monitoring.svc.cluster.local:9090

@@ -1,0 +1,63 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ include "prometheus.name" . }}
+spec:
+  template:
+    metadata:
+      labels:
+        name: {{ include "prometheus.name" . }}
+        {{ include "prometheus.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "prometheus.name" . }}
+      containers:
+        - name: {{ include "prometheus.name" . }}
+          image: "{{ .Values.prometheus.image.repository }}:{{ .Values.prometheus.image.tag }}"
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yaml"
+            - "--storage.tsdb.path=/prometheus/"
+          ports:
+            - containerPort: 9090
+          resources:
+            requests:
+              memory: {{ .Values.prometheus.requests.memory }}
+              cpu: {{ .Values.prometheus.requests.cpu }}
+            limits:
+              memory: {{ .Values.prometheus.limits.memory }}
+              cpu: {{ .Values.prometheus.limits.cpu }}
+          volumeMounts:
+            - name: {{ include "prometheus.name" . }}-config
+              mountPath: /etc/prometheus/
+            - name: {{ include "prometheus.name" . }}-storage
+              mountPath: /prometheus/
+          readinessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+            initialDelaySeconds: 1
+            periodSeconds: 3
+        - name: {{ include "prometheus.name" . }}-alertmanager
+          image: "{{ .Values.alertmanager.image.repository }}:{{ .Values.alertmanager.image.tag }}"
+          args:
+            - "--config.file=/etc/alertmanager/alertmanager.yaml"
+            - "--web.external-url=https://prometheus-alertmanager-$(NAMESPACE).$(CLUSTER_STAGE).schwarz"
+          ports:
+            - containerPort: 9093
+          volumeMounts:
+            - name: {{ include "prometheus.name" . }}-alertmanager-config
+              mountPath: /etc/alertmanager
+            - name: {{ include "prometheus.name" . }}-alertmanager-storage
+              mountPath: /alertmanager
+      volumes:
+        - name: {{ include "prometheus.name" . }}-config
+          configMap:
+            name: {{ include "prometheus.name" . }}
+        - name: {{ include "prometheus.name" . }}-storage
+          persistentVolumeClaim:
+            claimName: {{ include "prometheus.name" . }}-storage
+        - name: {{ include "prometheus.name" . }}-alertmanager-config
+          configMap:
+            name: {{ include "prometheus.name" . }}-alertmanager
+        - name: {{ include "prometheus.name" . }}-alertmanager-storage
+          persistentVolumeClaim:
+            claimName: {{ include "prometheus.name" . }}-alertmanager-storage

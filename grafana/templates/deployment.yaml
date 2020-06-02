@@ -1,0 +1,35 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "grafana.name" . }}
+spec:
+  template:
+    metadata:
+      labels:
+      {{- include "grafana.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ template "grafana.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - name: {{ template "grafana.name" . }}
+              containerPort: 3000
+          resources:
+            limits:
+              memory: {{ .Values.resources.memory }}
+              cpu: {{ .Values.resources.cpu }}
+          volumeMounts:
+            - mountPath: /var/lib/grafana
+              name: {{ template "grafana.name" . }}-storage
+            - mountPath: /etc/grafana/provisioning/datasources
+              name: {{ template "grafana.name" . }}-datasource
+              readOnly: false
+      volumes:
+        - name: {{ template "grafana.name" . }}-storage
+          persistentVolumeClaim:
+              claimName: {{ template "grafana.name" . }}-storage
+
+        - name: {{ template "grafana.name" . }}-datasource
+          configMap:
+              defaultMode: 420
+              name: {{ template "grafana.name" . }}-datasource
